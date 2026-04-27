@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>骰子探险家</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e6e6e6;
+            padding: 20px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .header {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 20px;
+            background: rgba(22, 33, 62, 0.8);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(76, 201, 240, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-title {
+            font-size: 2.8rem;
+            color: #4cc9f0;
+            text-shadow: 0 0 10px rgba(76, 201, 240, 0.7);
+            margin-bottom: 10px;
+        }
+        
+        .game-subtitle {
+            font-size: 1.2rem;
+            color: #a0a0c0;
+        }
+        
+        .panel {
+            background: rgba(22, 33, 62, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(76, 201, 240, 0.3);
+        }
+        
+        .panel-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #4cc9f0;
+            border-bottom: 2px solid #4cc9f0;
+            padding-bottom: 10px;
+            text-shadow: 0 0 5px rgba(76, 201, 240, 0.7);
+        }
+        
+        .player-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            background: rgba(15, 52, 96, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(76, 201, 240, 0.2);
+        }
+        
+        .stat-label {
+            font-weight: bold;
+            color: #4cc9f0;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .dice-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            margin: 20px 0;
+            perspective: 1000px;
+        }
+        
+        .dice {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s;
+        }
+        
+        .dice-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dice-face:nth-child(1) { transform: translateZ(50px); }
+        .dice-face:nth-child(2) { transform: rotateX(180deg) translateZ(50px); }
+        .dice-face:nth-child(3) { transform: rotateY(90deg) translateZ(50px); }
+        .dice-face:nth-child(4) { transform: rotateY(-90deg) translateZ(50px); }
+        .dice-face:nth-child(5) { transform: rotateX(90deg) translateZ(50px); }
+        .dice-face:nth-child(6) { transform: rotateX(-90deg) translateZ(50px); }
+        
+        .dice-btn {
+            background: linear-gradient(to bottom, #f72585, #d61a6f);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(247, 37, 133, 0.4);
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .dice-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(247, 37, 133, 0.6);
+        }
+        
+        .dice-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .dice-result {
+            text-align: center;
+            font-size: 1.5rem;
+            margin: 15px 0;
+            color: #ffd166;
+            font-weight: bold;
+        }
+        
+        .map-container {
+            position: relative;
+            height: 400px;
+            background: rgba(15, 52, 96, 0.5);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(76, 201, 240, 0.3);
+        }
+        
+        .map-path {
+            position: absolute;
+            top: 50%;
+            left: 50px;
+            right: 50px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%);
+            border-radius: 5px;
+        }
+        
+        .map-cell {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(76, 201, 240, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .map-cell.current {
+            background: #f72585;
+            box-shadow: 0 0 15px rgba(247, 37, 133, 0.7);
+            transform: translate(-50%, -50%) scale(1.2);
+            z-index: 10;
+        }
+        
+        .map-cell.event {
+            background: #ffd166;
+            color: #1a1a2e;
+        }
+        
+        .map-cell.treasure {
+            background: linear-gradient(45deg, #ffd166, #ff9e00);
+            color: #1a1a2e;
+        }
+        
+        .map-cell.trap {
+            background: linear-gradient(45deg, #e63946, #d00000);
+        }
+        
+        .map-cell.monster {
+            background: linear-gradient(45deg, #2ec4b6, #008080);
+        }
+        
+        .map-cell.boss {
+            background: linear-gradient(45deg, #9d4edd, #6a00ff);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(157, 78, 221, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(157, 78, 221, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(157, 78, 221, 0); }
+        }
+        
+        .inventory {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .item {
+            background: rgba(15, 52, 96, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(76, 201, 240, 0.2);
+        }
+        
+        .item-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .item-name {
+            font-size: 1rem;
+            margin-bottom: 5px;
+            color: #a0a0c0;
+        }
+        
+        .item-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .message-box {
+            height: 300px;
+            overflow-y: auto;
+            background: rgba(15, 52, 96, 0.7);
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 20px;
+            border: 1px solid rgba(76, 201, 240, 0.2);
+        }
+        
+        .message {
+            margin-bottom: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .message-time {
+            font-size: 0.9rem;
+            color: #a0a0c0;
+        }
+        
+        .message-content {
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+        
+        .message.event {
+            border-left: 4px solid #ffd166;
+        }
+        
+        .message.danger {
+            border-left: 4px solid #e63946;
+        }
+        
+        .message.treasure {
+            border-left: 4px solid #2ec4b6;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .control-btn {
+            background: rgba(15, 52, 96, 0.7);
+            border: 1px solid rgba(76, 201, 240, 0.3);
+            color: #4cc9f0;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .control-btn:hover {
+            background: rgba(76, 201, 240, 0.2);
+        }
+        
+        .event-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .event-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .event-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            border: 2px solid #4cc9f0;
+            box-shadow: 0 0 30px rgba(76, 201, 240, 0.5);
+        }
+        
+        .event-title {
+            font-size: 2rem;
+            color: #4cc9f0;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(76, 201, 240, 0.7);
+        }
+        
+        .event-description {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .event-reward {
+            font-size: 1.3rem;
+            color: #ffd166;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        
+        .event-btn {
+            background: linear-gradient(to bottom, #f72585, #d61a6f);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(247, 37, 133, 0.4);
+        }
+        
+        .event-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(247, 37, 133, 0.6);
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="game-title">骰子探险家</h1>
+        <p class="game-subtitle">掷骰子，走步数，探索神秘世界！</p>
+    </div>
+    
+    <div class="container">
+        <!-- 左侧面板：玩家状态和骰子 -->
+        <div class="panel">
+            <h2 class="panel-title">玩家状态</h2>
+            <div class="player-stats">
+                <div class="stat-item">
+                    <div class="stat-label">生命值</div>
+                    <div class="stat-value">9999999</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">金币</div>
+                    <div class="stat-value">99999999999999</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">当前位置</div>
+                    <div class="stat-value">起点</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">总步数</div>
+                    <div class="stat-value">0</div>
+                </div>
+            </div>
+            
+            <h2 class="panel-title">掷骰子</h2>
+            <div class="dice-container">
+                <div class="dice" id="dice">
+                    <div class="dice-face">1</div>
+                    <div class="dice-face">2</div>
+                    <div class="dice-face">3</div>
+                    <div class="dice-face">4</div>
+                    <div class="dice-face">5</div>
+                    <div class="dice-face">6</div>
+                </div>
+            </div>
+            
+            <button class="dice-btn" id="roll-btn">掷骰子</button>
+            <div class="dice-result" id="dice-result">点击掷骰子按钮开始冒险</div>
+            
+            <h2 class="panel-title">背包</h2>
+            <div class="inventory">
+                <div class="item">
+                    <div class="item-icon">⚔️</div>
+                    <div class="item-name">武器</div>
+                    <div class="item-count">1</div>
+                </div>
+                <div class="item">
+                    <div class="item-icon">🛡️</div>
+                    <div class="item-name">护甲</div>
+                    <div class="item-count">1</div>
+                </div>
+                <div class="item">
+                    <div class="item-icon">❤️</div>
+                    <div class="item-name">药水</div>
+                    <div class="item-count">99999999999999</div>
+                </div>
+                <div class="item">
+                    <div class="item-icon">🗝️</div>
+                    <div class="item-name">钥匙</div>
+                    <div class="item-count">99999999999999</div>
+                </div>
+                <div class="item">
+                    <div class="item-icon">💎</div>
+                    <div class="item-name">宝石</div>
+                    <div class="item-count">99999999999999</div>
+                </div>
+                <div class="item">
+                    <div class="item-icon">💰</div>
+                    <div class="item-name">金币</div>
+                    <div class="item-count">99999999999999</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 右侧面板：地图和日志 -->
+        <div class="panel">
+            <h2 class="panel-title">探险地图</h2>
+            <div class="map-container">
+                <div class="map-path"></div>
+                <!-- 地图格子将通过JS动态生成 -->
+            </div>
+            
+            <h2 class="panel-title">探险日志</h2>
+            <div class="message-box" id="message-box">
+                <div class="message">
+                    <div class="message-header">
+                        <div>系统</div>
+                        <div class="message-time">刚刚</div>
+                    </div>
+                    <div class="message-content">欢迎来到骰子探险家！点击掷骰子按钮开始冒险。</div>
+                </div>
+                <div class="message event">
+                    <div class="message-header">
+                        <div>事件</div>
+                        <div class="message-time">1分钟前</div>
+                    </div>
+                    <div class="message-content">你获得了一把基础武器</div>
+                </div>
+                <div class="message event">
+                    <div class="message-header">
+                        <div>事件</div>
+                        <div class="message-time">1分钟前</div>
+                    </div>
+                    <div class="message-content">你获得了一件基础护甲</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn" id="save-btn">保存游戏</button>
+                <button class="control-btn" id="load-btn">加载游戏</button>
+                <button class="control-btn" id="reset-btn">重新开始</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 事件弹窗 -->
+    <div class="event-modal" id="event-modal">
+        <div class="event-content">
+            <h2 class="event-title" id="event-title">发现宝藏！</h2>
+            <p class="event-description" id="event-description">你在路上发现了一个闪闪发光的宝箱！</p>
+            <p class="event-reward" id="event-reward">获得：50金币</p>
+            <button class="event-btn" id="event-btn">继续冒险</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏主逻辑
+        class DiceAdventure {
+            constructor() {
+                this.player = {
+                    position: 0,
+                    health: 99999999,
+                    maxHealth: 99999999,
+                    gold: 99999999999999,
+                    steps: 0,
+                    inventory: {
+                        weapon: 99,
+                        armor: 1,
+                        potion: 3,
+                        key: 0,
+                        gem: 0
+                    }
+                };
+                
+                this.map = [
+                    { type: 'start', name: '起点', description: '冒险开始的地方' },
+                    { type: 'normal', name: '平原', description: '广阔的平原，安全但无聊' },
+                    { type: 'treasure', name: '宝箱', description: '闪闪发光的宝箱' },
+                    { type: 'normal', name: '森林', description: '茂密的森林，小心迷路' },
+                    { type: 'trap', name: '陷阱', description: '小心脚下的陷阱！' },
+                    { type: 'normal', name: '村庄', description: '友好的村庄，可以休息' },
+                    { type: 'monster', name: '哥布林', description: '一只凶猛的哥布林' },
+                    { type: 'normal', name: '河流', description: '清澈的河流，可以补充水源' },
+                    { type: 'treasure', name: '藏宝地', description: '隐藏的宝藏地点' },
+                    { type: 'normal', name: '山洞', description: '黑暗的山洞，可能有危险' },
+                    { type: 'monster', name: '巨魔', description: '强大的巨魔守卫' },
+                    { type: 'normal', name: '山顶', description: '风景优美的山顶' },
+                    { type: 'boss', name: '巨龙', description: '最终的巨龙Boss' }
+                ];
+                
+                this.messages = [
+                    { content: "欢迎来到骰子探险家！点击掷骰子按钮开始冒险。", time: "刚刚" },
+                    { content: "你获得了一把基础武器", time: "1分钟前", type: "event" },
+                    { content: "你获得了一件基础护甲", time: "1分钟前", type: "event" }
+                ];
+                
+                this.playerId = this.getPlayerId();
+                this.diceRolling = false;
+                
+                this.loadGame();
+                this.initMap();
+                this.updateUI();
+            }
+            
+            getPlayerId() {
+                // 生成或获取玩家唯一ID
+                let playerId = localStorage.getItem('dicePlayerId');
+                if (!playerId) {
+                    playerId = 'player_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('dicePlayerId', playerId);
+                }
+                return playerId;
+            }
+            
+            saveGame() {
+                // 保存游戏进度
+                const saveData = {
+                    player: this.player,
+                    messages: this.messages
+                };
+                localStorage.setItem(`diceGame_${this.playerId}`, JSON.stringify(saveData));
+                this.addMessage("游戏进度已保存！", "system");
+            }
+            
+            loadGame() {
+                // 加载游戏进度
+                const saveData = localStorage.getItem(`diceGame_${this.playerId}`);
+                if (saveData) {
+                    try {
+                        const data = JSON.parse(saveData);
+                        this.player = data.player;
+                        this.messages = data.messages || [];
+                        this.addMessage("游戏进度已加载！", "system");
+                    } catch (e) {
+                        this.addMessage("加载存档失败，开始新游戏", "system");
+                    }
+                }
+            }
+            
+            resetGame() {
+                this.player = {
+                    position: 0,
+                    health: 100,
+                    maxHealth: 100,
+                    gold: 50,
+                    steps: 0,
+                    inventory: {
+                        weapon: 1,
+                        armor: 1,
+                        potion: 3,
+                        key: 0,
+                        gem: 0
+                    }
+                };
+                
+                this.messages = [
+                    { content: "游戏已重置！开始新的冒险。", time: "刚刚", type: "system" }
+                ];
+                
+                this.updateUI();
+            }
+            
+            addMessage(content, type = "system") {
+                // 添加消息
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                               now.getMinutes().toString().padStart(2, '0');
+                
+                this.messages.unshift({
+                    content: content,
+                    type: type,
+                    time: timeStr
+                });
+                
+                // 保持消息数量不超过20条
+                if (this.messages.length > 20) {
+                    this.messages.pop();
+                }
+                
+                this.updateMessages();
+            }
+            
+            updateMessages() {
+                // 更新消息显示
+                const messageBox = document.getElementById('message-box');
+                messageBox.innerHTML = '';
+                
+                this.messages.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = 'message';
+                    if (msg.type === "event") div.classList.add('event');
+                    if (msg.type === "danger") div.classList.add('danger');
+                    if (msg.type === "treasure") div.classList.add('treasure');
+                    
+                    div.innerHTML = `
+                        <div class="message-header">
+                            <div>${msg.type === "event" ? "事件" : msg.type === "danger" ? "危险" : msg.type === "treasure" ? "宝藏" : "系统"}</div>
+                            <div class="message-time">${msg.time}</div>
+                        </div>
+                        <div class="message-content">${msg.content}</div>
+                    `;
+                    
+                    messageBox.appendChild(div);
+                });
+            }
+            
+            initMap() {
+                // 初始化地图
+                const mapContainer = document.querySelector('.map-container');
+                const mapPath = document.querySelector('.map-path');
+                
+                // 移除旧的地图格子
+                const oldCells = document.querySelectorAll('.map-cell');
+                oldCells.forEach(cell => cell.remove());
+                
+                // 创建新的地图格子
+                const pathWidth = mapPath.offsetWidth;
+                const cellSpacing = pathWidth / (this.map.length - 1);
+                
+                this.map.forEach((cell, index) => {
+                    const cellElement = document.createElement('div');
+                    cellElement.className = 'map-cell';
+                    cellElement.textContent = index;
+                    cellElement.dataset.index = index;
+                    
+                    // 设置位置
+                    const left = 50 + (index * cellSpacing);
+                    cellElement.style.left = `${left}px`;
+                    cellElement.style.top = '50%';
+                    
+                    // 添加类型类
+                    if (cell.type === 'start') {
+                        cellElement.classList.add('current');
+                    }
+                    if (cell.type === 'treasure') {
+                        cellElement.classList.add('treasure');
+                    }
+                    if (cell.type === 'trap') {
+                        cellElement.classList.add('trap');
+                    }
+                    if (cell.type === 'monster') {
+                        cellElement.classList.add('monster');
+                    }
+                    if (cell.type === 'boss') {
+                        cellElement.classList.add('boss');
+                    }
+                    
+                    mapContainer.appendChild(cellElement);
+                });
+            }
+            
+            updateUI() {
+                // 更新UI显示
+                // 更新玩家状态
+                document.querySelector('.stat-item:nth-child(1) .stat-value').textContent = this.player.health;
+                document.querySelector('.stat-item:nth-child(2) .stat-value').textContent = this.player.gold;
+                document.querySelector('.stat-item:nth-child(3) .stat-value').textContent = this.map[this.player.position].name;
+                document.querySelector('.stat-item:nth-child(4) .stat-value').textContent = this.player.steps;
+                
+                // 更新背包
+                document.querySelector('.item:nth-child(1) .item-count').textContent = this.player.inventory.weapon;
+                document.querySelector('.item:nth-child(2) .item-count').textContent = this.player.inventory.armor;
+                document.querySelector('.item:nth-child(3) .item-count').textContent = this.player.inventory.potion;
+                document.querySelector('.item:nth-child(4) .item-count').textContent = this.player.inventory.key;
+                document.querySelector('.item:nth-child(5) .item-count').textContent = this.player.inventory.gem;
+                document.querySelector('.item:nth-child(6) .item-count').textContent = this.player.gold;
+                
+                // 更新地图
+                const cells = document.querySelectorAll('.map-cell');
+                cells.forEach(cell => {
+                    cell.classList.remove('current');
+                    if (parseInt(cell.dataset.index) === this.player.position) {
+                        cell.classList.add('current');
+                    }
+                });
+                
+                // 更新消息
+                this.updateMessages();
+            }
+            
+            rollDice() {
+                if (this.diceRolling) return;
+                
+                this.diceRolling = true;
+                const dice = document.getElementById('dice');
+                const resultElement = document.getElementById('dice-result');
+                
+                // 重置骰子
+                dice.style.transform = 'rotateX(0) rotateY(0)';
+                resultElement.textContent = "骰子旋转中...";
+                
+                // 模拟骰子旋转
+                let rolls = 0;
+                const rollInterval = setInterval(() => {
+                    const x = Math.floor(Math.random() * 360);
+                    const y = Math.floor(Math.random() * 360);
+                    dice.style.transform = `rotateX(${x}deg) rotateY(${y}deg)`;
+                    
+                    rolls++;
+                    if (rolls > 10) {
+                        clearInterval(rollInterval);
+                        
+                        // 生成随机结果
+                        const result = Math.floor(Math.random() * 6) + 1;
+                        
+                        // 设置最终骰子位置
+                        const rotations = {
+                            1: 'rotateX(0) rotateY(0)',
+                            2: 'rotateX(180deg) rotateY(0)',
+                            3: 'rotateX(0) rotateY(90deg)',
+                            4: 'rotateX(0) rotateY(-90deg)',
+                            5: 'rotateX(90deg) rotateY(0)',
+                            6: 'rotateX(-90deg) rotateY(0)'
+                        };
+                        
+                        dice.style.transform = rotations[result];
+                        dice.style.transition = 'transform 1s';
+                        
+                        setTimeout(() => {
+                            resultElement.textContent = `掷出了 ${result} 点！`;
+                            this.movePlayer(result);
+                            this.diceRolling = false;
+                        }, 1000);
+                    }
+                }, 100);
+            }
+            
+            movePlayer(steps) {
+                this.player.steps += steps;
+                const newPosition = Math.min(this.player.position + steps, this.map.length - 1);
+                
+                // 移动动画
+                let currentPos = this.player.position;
+                const moveInterval = setInterval(() => {
+                    if (currentPos < newPosition) {
+                        currentPos++;
+                        this.player.position = currentPos;
+                        this.updateUI();
+                    } else {
+                        clearInterval(moveInterval);
+                        this.triggerEvent();
+                    }
+                }, 500);
+            }
+            
+            triggerEvent() {
+                const currentCell = this.map[this.player.position];
+                const eventModal = document.getElementById('event-modal');
+                const eventTitle = document.getElementById('event-title');
+                const eventDesc = document.getElementById('event-description');
+                const eventReward = document.getElementById('event-reward');
+                
+                switch(currentCell.type) {
+                    case 'start':
+                        eventTitle.textContent = "冒险起点";
+                        eventDesc.textContent = "你的冒险从这里开始！准备好迎接挑战了吗？";
+                        eventReward.textContent = "获得：基础装备";
+                        break;
+                        
+                    case 'normal':
+                        eventTitle.textContent = currentCell.name;
+                        eventDesc.textContent = currentCell.description;
+                        eventReward.textContent = "无特殊事件";
+                        break;
+                        
+                    case 'treasure':
+                        const goldGain = Math.floor(Math.random() * 50) + 20;
+                        this.player.gold += goldGain;
+                        
+                        eventTitle.textContent = "发现宝藏！";
+                        eventDesc.textContent = "你在路上发现了一个闪闪发光的宝箱！";
+                        eventReward.textContent = `获得：${goldGain}金币`;
+                        this.addMessage(`发现宝藏！获得${goldGain}金币`, "treasure");
+                        break;
+                        
+                    case 'trap':
+                        const damage = Math.floor(Math.random() * 20) + 10;
+                        this.player.health = Math.max(0, this.player.health - damage);
+                        
+                        eventTitle.textContent = "陷阱！";
+                        eventDesc.textContent = "你不小心触发了一个陷阱！";
+                        eventReward.textContent = `损失：${damage}点生命值`;
+                        this.addMessage(`触发陷阱！损失${damage}点生命值`, "danger");
+                        break;
+                        
+                    case 'monster':
+                        const monsterDamage = Math.floor(Math.random() * 30) + 15;
+                        this.player.health = Math.max(0, this.player.health - monsterDamage);
+                        const goldDrop = Math.floor(Math.random() * 30) + 10;
+                        this.player.gold += goldDrop;
+                        
+                        eventTitle.textContent = "遭遇怪物！";
+                        eventDesc.textContent = `你遭遇了一只${currentCell.name}，经过一番战斗你击败了它！`;
+                        eventReward.textContent = `损失：${monsterDamage}点生命值，获得：${goldDrop}金币`;
+                        this.addMessage(`遭遇${currentCell.name}！损失${monsterDamage}点生命值，获得${goldDrop}金币`, "danger");
+                        break;
+                        
+                    case 'boss':
+                        const bossDamage = Math.floor(Math.random() * 50) + 30;
+                        this.player.health = Math.max(0, this.player.health - bossDamage);
+                        const bossGold = Math.floor(Math.random() * 100) + 50;
+                        this.player.gold += bossGold;
+                        
+                        eventTitle.textContent = "巨龙Boss！";
+                        eventDesc.textContent = "你遇到了最终的巨龙Boss！经过艰苦的战斗，你取得了胜利！";
+                        eventReward.textContent = `损失：${bossDamage}点生命值，获得：${bossGold}金币`;
+                        this.addMessage(`遭遇巨龙Boss！损失${bossDamage}点生命值，获得${bossGold}金币`, "danger");
+                        break;
+                }
+                
+                // 显示事件弹窗
+                eventModal.classList.add('active');
+            }
+            
+            closeEvent() {
+                document.getElementById('event-modal').classList.remove('active');
+                
+                // 检查游戏结束
+                if (this.player.health <= 0) {
+                    this.addMessage("游戏结束！你的生命值降到了零", "danger");
+                    setTimeout(() => {
+                        alert("游戏结束！你的生命值降到了零");
+                        this.resetGame();
+                    }, 1000);
+                }
+                
+                // 检查游戏胜利
+                if (this.player.position === this.map.length - 1) {
+                    this.addMessage("恭喜！你完成了整个探险！", "event");
+                    setTimeout(() => {
+                        alert("恭喜！你完成了整个探险！");
+                        this.resetGame();
+                    }, 1000);
+                }
+            }
+        }
+
+        // 初始化游戏
+        const game = new DiceAdventure();
+        
+        // 绑定按钮事件
+        document.getElementById('roll-btn').addEventListener('click', () => {
+            game.rollDice();
+        });
+        
+        document.getElementById('save-btn').addEventListener('click', () => {
+            game.saveGame();
+        });
+        
+        document.getElementById('load-btn').addEventListener('click', () => {
+            game.loadGame();
+            game.updateUI();
+        });
+        
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            if (confirm("确定要重置游戏吗？所有进度将丢失！")) {
+                game.resetGame();
+            }
+        });
+        
+        document.getElementById('event-btn').addEventListener('click', () => {
+            game.closeEvent();
+        });
+        
+        // 添加地图点击事件
+        document.querySelector('.map-container').addEventListener('click', (e) => {
+            if (e.target.classList.contains('map-cell')) {
+                const index = parseInt(e.target.dataset.index);
+                game.player.position = index;
+                game.updateUI();
+                game.addMessage(`移动到：${game.map[index].name}`, "event");
+            }
+        });
+    </script>
+</body>
+</html>
